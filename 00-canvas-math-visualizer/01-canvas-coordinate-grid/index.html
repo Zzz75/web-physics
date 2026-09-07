@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 01 - Canvas Coordinate Grid</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="canvas-stage" aria-labelledby="demo-title">
+      <div class="stage-header">
+        <div>
+          <p class="eyebrow">Stage 00 / Day 01</p>
+          <h1 id="demo-title">Canvas Coordinate Grid</h1>
+        </div>
+        <div class="status-line" aria-live="polite">
+          <span id="dprText">DPR 1</span>
+          <span id="sizeText">0 x 0</span>
+        </div>
+      </div>
+
+      <canvas id="mathCanvas" aria-label="Canvas coordinate grid"></canvas>
+    </section>
+
+    <aside class="debug-panel" aria-label="Debug values">
+      <section>
+        <h2>Mouse</h2>
+        <dl class="value-list">
+          <div>
+            <dt>Canvas</dt>
+            <dd id="canvasPoint">-</dd>
+          </div>
+          <div>
+            <dt>Math</dt>
+            <dd id="mathPoint">-</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section>
+        <h2>Layers</h2>
+        <label class="toggle-row">
+          <input id="gridToggle" type="checkbox" checked>
+          <span>Grid</span>
+        </label>
+        <label class="toggle-row">
+          <input id="labelToggle" type="checkbox" checked>
+          <span>Labels</span>
+        </label>
+      </section>
+
+      <section>
+        <h2>Checks</h2>
+        <ul class="check-list">
+          <li>HD canvas</li>
+          <li>Centered origin</li>
+          <li>Mouse coordinate mapping</li>
+          <li>Inverted math y-axis</li>
+        </ul>
+      </section>
+    </aside>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
