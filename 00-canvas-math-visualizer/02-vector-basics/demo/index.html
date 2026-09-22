@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+
+    <canvas id="mathCanvas"></canvas>
+
+    <script>
+        
+
+        class Vector2 {
+            
+            constructor(x = 0, y = 0) {
+                this.x = x;
+                this.y = y;
+            }
+
+            
+
+            add(vector) {
+                return new Vector2(this.x + vector.x, this.y + vector.y)
+            }
+
+            
+            subtract(vector) {
+                return new Vector2(this.x - vector.x, this.y - vector.y)
+            }
+
+          
+            dot(vector) {
+                return this.x * vector.x + this.y * vector.y;
+            }
+
+           
+            magnitude() {
+                return Math.hypot(this.x, this.y)
+            }
+
+           
+            normalize() {
+                const length = this.magnitude()
+                if (length === 0) return new Vector2(0, 0)
+                return this.scale(1 / length)
+            }
+
+            
+            scale(scalar) {
+                return new Vector2(this.x * scalar, this.y * scalar)
+            }
+
+
+        }
+
+        const canvasElement = document.querySelector('#mathCanvas')
+        if (!(canvasElement instanceof HTMLCanvasElement)) {
+            throw new Error("Canvas element not found");
+        }
+        const canvas = canvasElement;
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+            throw new Error("2D canvas context is not available");
+        }
+        const ctx = context;
+
+        const state = {
+            width: 0,
+            height: 0,
+            dpr: 1,
+            mouse: null,
+            fixedVector: new Vector2(180, 70),
+            showGrid: true,
+            showLabels: true,
+        };
+
+        function render() {
+            ctx.clearRect(0, 0, state.width, state.height);
+            ctx.fillStyle = "#fffdfa";
+            ctx.fillRect(0, 0, state.width, state.height);
+
+            drawAxes();
+            drawFixedVector();
+            drawProjection();
+            drawMousePoint();
+            drawArrow()
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            state.width = Math.floor(rect.width);
+            state.height = Math.floor(rect.height);
+            state.dpr = Math.max(1, window.devicePixelRatio || 1);
+
+            canvas.width = Math.floor(state.width * state.dpr);
+            canvas.height = Math.floor(state.height * state.dpr);
+            ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+
+            render();
+        }
+
+        
+        function drawLine(x1, y1, x2, y2, color, width = 1) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.stroke();
+        }
+
+        
+        function drawCircle(x, y, radius, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        
+        function toCanvasPoint(mathVector) {
+            return new Vector2(
+                state.width / 2 + mathVector.x,
+                state.height / 2 - mathVector.y
+            )
+        }
+
+        function drawFixedVector() {
+            const centerX = state.width / 2;
+            const centerY = state.height / 2;
+            const end = toCanvasPoint(state.fixedVector);
+
+            drawLine(centerX, centerY, end.x, end.y, "#7b4bb3", 2);
+            drawCircle(end.x, end.y, 4, "#7b4bb3");
+
+            ctx.font = "12px Consolas, monospace";
+            ctx.fillStyle = "#7b4bb3";
+            ctx.fillText("fixed direction", end.x + 10, end.y - 10);
+        }
+
+        function drawProjection() {
+            if (!state.mouse) return;
+
+            const fixedUnit = state.fixedVector.normalize();
+            // 投影长度 = 鼠标向量和“固定方向单位向量”的点积。
+            const projectionLength = state.mouse.math.dot(fixedUnit);
+            // 将投影长度放回固定方向上，得到从原点出发的投影向量。
+            const projection = fixedUnit.scale(projectionLength);
+            const projectionPoint = toCanvasPoint(projection);
+            const mousePoint = state.mouse.canvas;
+            const centerX = state.width / 2;
+            const centerY = state.height / 2;
+
+            drawLine(centerX, centerY, projectionPoint.x, projectionPoint.y, "#4e768b", 2);
+            drawLine(mousePoint.x, mousePoint.y, projectionPoint.x, projectionPoint.y, "#4e768b", 1);
+            drawCircle(projectionPoint.x, projectionPoint.y, 5, "#4e768b");
+
+            ctx.font = "12px Consolas, monospace";
+            ctx.fillStyle = "#4e768b";
+            ctx.fillText(
+                `projection = dot(mouse, fixed unit)`,
+                Math.min(projectionPoint.x + 10, state.width - 260),
+                Math.max(projectionPoint.y + 18, 18)
+            );
+        }
+
+        function drawArrow() {
+            if (!state.mouse) return;
+            const origin = new Vector2(state.width / 2, state.height / 2);
+            const end = state.mouse.canvas;
+            const directive = end.subtract(origin).normalize();
+            const normal = new Vector2(-directive.y, directive.x)
+            const headLength = 14;
+            const headWidth = 7;
+            const left = end.subtract(directive.scale(headLength)).add(normal.scale(headWidth))
+            const right = end.subtract(directive.scale(headLength)).subtract(normal.scale(headWidth))
+            drawLine(end.x, end.y, left.x, left.y, "#1d5f8f", 1.5);
+            drawLine(end.x, end.y, right.x, right.y, "#1d5f8f", 1.5);
+        }
+
+
+        function drawAxes() {
+            const centerX = state.width / 2;
+            const centerY = state.height / 2;
+
+            drawLine(0, centerY, state.width, centerY, "#c43e3e", 2);
+            drawLine(centerX, 0, centerX, state.height, "#286f54", 2);
+            drawCircle(centerX, centerY, 4, "#171717");
+
+            if (!state.showLabels) return;
+            ctx.font = "12px Consolas, monospace";
+            ctx.fillStyle = "#c43e3e";
+            ctx.fillText("+x", state.width - 28, centerY - 12);
+            ctx.fillStyle = "#286f54";
+            ctx.fillText("+y", centerX + 10, 20);
+            ctx.fillStyle = "#171717";
+            ctx.fillText("(0, 0)", centerX + 8, centerY - 8);
+        }
+
+        function getCanvasPoint(event) {
+            const rect = canvas.getBoundingClientRect();
+            const isTouchEvent = typeof TouchEvent !== "undefined" && event instanceof TouchEvent;
+            const source = isTouchEvent ? event.touches[0] ?? event.changedTouches[0] : event;
+
+            if (!source) {
+                return new Vector2(0, 0);
+            }
+
+            return new Vector2(source.clientX - rect.left, source.clientY - rect.top)
+        }
+
+      
+        function toMathVector(point, canvasWidth, canvasHeight) {
+            return new Vector2(point.x - canvasWidth / 2, canvasHeight / 2 - point.y)
+        }
+
+      
+        function updateMouse(event) {
+            event.preventDefault();
+            const canvasPoint = getCanvasPoint(event);
+            const mathPoint = toMathVector(canvasPoint, state.width, state.height);
+
+            state.mouse = {
+                canvas: canvasPoint,
+                math: mathPoint,
+            };
+
+            render();
+        }
+
+        function drawMousePoint() {
+            if (!state.mouse) return;
+            const canvasPoint = state.mouse.canvas;
+            const mathPoint = state.mouse.math;
+            const centerX = state.width / 2;
+            const centerY = state.height / 2;
+
+            drawLine(centerX, centerY, canvasPoint.x, canvasPoint.y, "#1d5f8f", 1.5);
+            drawCircle(canvasPoint.x, canvasPoint.y, 4, "#d88719");
+            ctx.font = "12px Consolas, monospace";
+            ctx.fillStyle = "#171717";
+            ctx.fillText(
+                `math (${mathPoint.x.toFixed(1)}, ${mathPoint.y.toFixed(1)})`,
+                Math.min(canvasPoint.x + 12, state.width - 150),
+                Math.max(canvasPoint.y - 12, 18)
+            );
+        }
+
+        canvas.addEventListener('mousemove', updateMouse);
+        window.addEventListener('resize', resizeCanvas);
+
+        resizeCanvas();
+    </script>
+
+</body>
+
+</html>

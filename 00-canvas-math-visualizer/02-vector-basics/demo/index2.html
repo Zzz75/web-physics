@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+
+    <canvas id="mathCanvas"></canvas>
+
+    <script>
+        class Vector2 {
+            constructor(x = 0, y = 0) {
+                this.x = x
+                this.y = y
+            }
+            add(vector) {
+                return new Vector2(this.x + vector.x, this.y + vector.y)
+            }
+            subtract(vector) {
+                return new Vector2(this.x - vector.x, this.y - vector.y)
+            }
+            scale(scalar) {
+                return new Vector2(this.x * scalar, this.y * scalar)
+            }
+            magnitude() {
+                return Math.hypot(this.x, this.y);
+            }
+            normalize() {
+                const length = this.magnitude()
+                if (length === 0) return new Vector2(0, 0)
+                return this.scale(1 / length)
+            }
+        }
+
+        const canvas = document.querySelector('#mathCanvas')
+
+        const ctx = canvas.getContext('2d')
+
+        const state = {
+            width: 0,
+            height: 0,
+            dpr: 1,
+            point: null
+
+        }
+
+
+        function render() {
+            ctx.clearRect(0, 0, state.width, state.height)
+            ctx.fillStyle = "#fffdfa"
+            ctx.fillRect(0, 0, state.width, state.height)
+            drawAxes()
+            if (!state.point) return
+            drawArrow(state.point.math, "#1d5f8f", "mouse")
+        }
+        function drawLine(x1, y1, x2, y2, color, stroke = 1) {
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.strokeStyle = color
+            ctx.lineWidth = stroke
+            ctx.stroke()
+        }
+
+        function drawAxes() {
+            const centerX = state.width / 2
+            const centerY = state.height / 2
+
+            // x轴
+            drawLine(0, centerY, state.width, centerY, "#c43e3e", 2)
+            // y轴
+            drawLine(centerX, 0, centerX, state.height, "#286f54", 2)
+        }
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect()
+            state.width = Math.floor(rect.width)
+            state.height = Math.floor(rect.height)
+            state.dpr = Math.max(1, window.devicePixelRatio || 1)
+
+            canvas.width = Math.floor(state.width * state.dpr)
+            canvas.height = Math.floor(state.height * state.dpr)
+            ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0)
+
+            render()
+        }
+
+        function mouseToPoint(x, y) {
+            const rect = canvas.getBoundingClientRect()
+            return new Vector2(
+                x - rect.left,
+                y - rect.top
+            )
+        }
+
+        function pointToMath(x, y) {
+            return new Vector2(
+                x - state.width / 2,
+                state.height / 2 - y
+            )
+        }
+        function mathToPoint(vector) {
+            return new Vector2(
+                vector.x + state.width / 2,
+                state.height / 2 - vector.y
+            )
+        }
+        function updateMouse(event) {
+            event.preventDefault()
+            const canvasPoint = mouseToPoint(event.clientX, event.clientY)
+            const mathPoint = pointToMath(canvasPoint.x, canvasPoint.y)
+
+            state.point = {
+                canvas: canvasPoint,
+                math: mathPoint
+            }
+
+            render()
+        }
+        function drawArrow(vector, color, label, width = 2) {
+            const end = vector
+            const direction = end.normalize()
+            const normal = new Vector2(-direction.y, direction.x)
+            const headLength = 140
+            const headWidth = 70
+            const left = end.subtract(direction.scale(headLength)).add(normal.scale(headWidth))
+            const right = end.subtract(direction.scale(headLength)).subtract(normal.scale(headWidth))
+
+            const endPoint = mathToPoint(end)
+            const leftPoint = mathToPoint(left)
+            const rightPoint = mathToPoint(right)
+            
+            drawLine(state.width/2,state.height/2,endPoint.x,endPoint.y,color,width)
+            drawLine(endPoint.x,endPoint.y,leftPoint.x,leftPoint.y,color,width)
+            drawLine(endPoint.x,endPoint.y,rightPoint.x,rightPoint.y,color,width)
+
+            ctx.font = "12px"
+            ctx.fillStyle = color
+            ctx.fillText(label,endPoint.x+10,endPoint.y - 10)
+        }
+
+        window.addEventListener('resize', resizeCanvas)
+        window.addEventListener('mousemove', updateMouse)
+        resizeCanvas()
+    </script>
+</body>
+
+</html>
