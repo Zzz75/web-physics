@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Day 03 Demo - Minimal Sine Wave</title>
+</head>
+<body>
+  <style>
+    body {
+      margin: 0;
+      background: #f4f1ec;
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+  </style>
+
+  <canvas id="waveCanvas"></canvas>
+
+  <script>
+    const canvas = document.querySelector("#waveCanvas");
+    const ctx = canvas.getContext("2d");
+    const TAU = Math.PI * 2;
+
+    const state = {
+      width: 0,
+      height: 0,
+      dpr: 1,
+      amplitude: 80,
+      frequency: 2,
+      phase: 0,
+      lastTime: 0,
+    };
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      state.width = Math.floor(rect.width);
+      state.height = Math.floor(rect.height);
+      state.dpr = Math.max(1, window.devicePixelRatio || 1);
+
+      canvas.width = Math.floor(state.width * state.dpr);
+      canvas.height = Math.floor(state.height * state.dpr);
+      ctx.setTransform(state.dpr, 0, 0, state.dpr, 0, 0);
+    }
+
+    function drawLine(x1, y1, x2, y2, color, width = 1) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.stroke();
+    }
+
+    function drawCircle(x, y, radius, color) {
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, TAU);
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+
+    function drawSineWave() {
+      const baselineY = state.height / 2;
+      const startX = 40;
+      const endX = state.width - 220;
+      const waveWidth = endX - startX;
+
+      drawLine(startX, baselineY, endX, baselineY, "#5f665f", 1);
+
+      ctx.beginPath();
+      for (let x = startX; x <= endX; x += 2) {
+        const progress = (x - startX) / waveWidth;
+        const angle = progress * state.frequency * TAU + state.phase;
+        const y = baselineY - Math.sin(angle) * state.amplitude;
+
+        if (x === startX) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+
+      ctx.strokeStyle = "#1d5f8f";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    function drawCircleGuide() {
+      const centerX = state.width - 120;
+      const centerY = state.height / 2;
+      const pointX = centerX + Math.cos(state.phase) * state.amplitude;
+      const pointY = centerY - Math.sin(state.phase) * state.amplitude;
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, state.amplitude, 0, TAU);
+      ctx.strokeStyle = "#7b4bb3";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      drawLine(centerX, centerY, pointX, pointY, "#7b4bb3", 2);
+      drawCircle(pointX, pointY, 6, "#7b4bb3");
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, state.width, state.height);
+      ctx.fillStyle = "#fffdfa";
+      ctx.fillRect(0, 0, state.width, state.height);
+
+      drawSineWave();
+      drawCircleGuide();
+    }
+
+    function tick(timestamp) {
+      if (state.lastTime === 0) state.lastTime = timestamp;
+      const deltaSeconds = (timestamp - state.lastTime) / 1000;
+      state.lastTime = timestamp;
+      state.phase += deltaSeconds;
+
+      render();
+      requestAnimationFrame(tick);
+    }
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      render();
+    });
+
+    resizeCanvas();
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
