@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 03 Demo - Sine Wave Controls</title>
+</head>
+
+<body>
+    <style>
+        body {
+            margin: 0;
+            background: #f4f1ec;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .controls {
+            position: fixed;
+            left: 16px;
+            top: 16px;
+            display: grid;
+            gap: 10px;
+            width: 260px;
+            padding: 12px;
+            background: rgba(255, 253, 250, 0.9);
+            border: 1px solid #dfd6c8;
+            z-index: 1;
+        }
+
+        label {
+            display: grid;
+            gap: 4px;
+            color: #2f2a24;
+            font-size: 14px;
+        }
+    </style>
+
+    <div class="controls">
+        <label>
+            振幅 amplitude
+            <input id="amplitudeInput" type="range" min="20" max="180" value="80">
+        </label>
+        <label>
+            频率 frequency
+            <input id="frequencyInput" type="range" min="1" max="8" value="2">
+        </label>
+        <label>
+            相位 phase
+            <input id="phaseInput" type="range" min="0" max="6.28" step="0.01" value="0">
+        </label>
+        <label>
+            速度 speed
+            <input id="speedInput" type="range" min="0" max="6" step="0.1" value="1">
+        </label>
+    </div>
+
+    <canvas id="waveCanvas"></canvas>
+
+    <script>
+        const canvas = document.querySelector('#waveCanvas')
+        const ctx = canvas.getContext('2d')
+        const amplitudeInput = document.querySelector('#amplitudeInput')
+        const frequencyInput = document.querySelector('#frequencyInput')
+        const phaseInput = document.querySelector('#phaseInput')
+        const speedInput = document.querySelector('#speedInput')
+        // 一整圈是 2π 弧度，后面用它表示一个完整周期。
+        const TAU = Math.PI * 2
+
+        let amplitude = Number(amplitudeInput.value)
+        let frequency = Number(frequencyInput.value)
+        let phase = Number(phaseInput.value)
+        let speed = Number(speedInput.value)
+        let elapsed = 0
+        let lastTime = 0
+
+        function render() {
+            const rect = canvas.getBoundingClientRect()
+            const dpr = Math.max(1, window.devicePixelRatio || 1)
+            const width = rect.width
+            const height = rect.height
+
+            // 同步 canvas 的真实绘图尺寸，否则 CSS 放大后坐标会对不上。
+            canvas.width = Math.floor(width * dpr)
+            canvas.height = Math.floor(height * dpr)
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+            const baselineY = height / 2
+            const circleX = width - amplitude
+            const circleY = baselineY
+            const waveStartX = 0
+            const waveEndX = Math.max(waveStartX + 120, circleX - amplitude )
+            const waveWidth = waveEndX - waveStartX
+            // 手动 phase 决定起点，elapsed * speed 让角度随时间增加。
+            const angle = phase + elapsed * speed
+            const circlePointX = circleX + Math.cos(angle) * amplitude
+            const circlePointY = circleY - Math.sin(angle) * amplitude
+
+            ctx.clearRect(0, 0, width, height)
+
+            // 先画波形中线，方便观察振幅是从这条线向上、向下摆动。
+            ctx.beginPath()
+            ctx.moveTo(waveStartX, baselineY)
+            ctx.lineTo(waveEndX, baselineY)
+            ctx.strokeStyle = '#9b9388'
+            ctx.lineWidth = 1
+            ctx.stroke()
+
+            // 再画正弦波：波形起点使用 phase，所以它和圆周点的高度一致。
+            ctx.beginPath()
+
+            for (let x = waveStartX; x <= waveEndX; x += 1) {
+                const progress = (x - waveStartX) / waveWidth
+                // progress 决定横向进度，frequency 决定周期数量，phase 决定整体偏移。
+                const waveAngle = progress * frequency * TAU + angle
+                const y = baselineY - Math.sin(waveAngle) * amplitude
+
+                if (x === waveStartX) {
+                    ctx.moveTo(x, y)
+                } else {
+                    ctx.lineTo(x, y)
+                }
+            }
+
+            ctx.strokeStyle = '#1d5f8f'
+            ctx.lineWidth = 2
+            ctx.stroke()
+
+            // 画右侧圆：cos 决定左右位置，sin 决定上下位置。
+            ctx.beginPath()
+            ctx.arc(circleX, circleY, amplitude, 0, TAU)
+            ctx.strokeStyle = '#7b4bb3'
+            ctx.lineWidth = 2
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.moveTo(circleX, circleY)
+            ctx.lineTo(circlePointX, circlePointY)
+            ctx.strokeStyle = '#7b4bb3'
+            ctx.lineWidth = 2
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.arc(circlePointX, circlePointY, 6, 0, TAU)
+            ctx.fillStyle = '#7b4bb3'
+            ctx.fill()
+
+            // 把圆周点的 y 高度投影到波形起点，观察正弦波来自圆周运动的垂直变化。
+            ctx.save()
+            ctx.setLineDash([6, 6])
+            ctx.beginPath()
+            ctx.moveTo(circlePointX, circlePointY)
+            ctx.lineTo(waveStartX, circlePointY)
+            ctx.lineTo(waveStartX, baselineY)
+            ctx.strokeStyle = '#d88719'
+            ctx.lineWidth = 1.5
+            ctx.stroke()
+            ctx.restore()
+
+            ctx.beginPath()
+            ctx.arc(waveStartX, circlePointY, 5, 0, TAU)
+            ctx.fillStyle = '#d88719'
+            ctx.fill()
+
+            ctx.font = '14px Arial, sans-serif'
+            ctx.fillStyle = '#7b4bb3'
+            ctx.fillText('circle point', circlePointX + 10, circlePointY - 10)
+            ctx.fillStyle = '#d88719'
+            ctx.fillText('same y', waveStartX + 10, circlePointY - 10)
+        }
+
+        amplitudeInput.addEventListener('input', () => {
+            amplitude = Number(amplitudeInput.value)
+            render()
+        })
+
+        frequencyInput.addEventListener('input', () => {
+            frequency = Number(frequencyInput.value)
+            render()
+        })
+
+        phaseInput.addEventListener('input', () => {
+            phase = Number(phaseInput.value)
+            render()
+        })
+
+        speedInput.addEventListener('input', () => {
+            speed = Number(speedInput.value)
+            render()
+        })
+
+        window.addEventListener('resize', () => {
+            render()
+        })
+
+        function tick(timestamp) {
+            if (lastTime === 0) {
+                lastTime = timestamp
+            }
+
+            // 用秒作为时间单位，让动画速度不依赖屏幕帧率。
+            const deltaSeconds = (timestamp - lastTime) / 1000
+            lastTime = timestamp
+            elapsed += deltaSeconds
+
+            render()
+            requestAnimationFrame(tick)
+        }
+
+        render()
+        // requestAnimationFrame(tick)
+    </script>
+</body>
+
+</html>

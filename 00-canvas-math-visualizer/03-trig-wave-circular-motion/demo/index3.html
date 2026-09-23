@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <style>
+        body {
+            margin: 0;
+            background: #f4f1ec;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .controls {
+            position: fixed;
+            left: 16px;
+            top: 16px;
+            display: grid;
+            gap: 10px;
+            width: 260px;
+            padding: 12px;
+            background: rgba(255, 253, 250, 0.9);
+            border: 1px solid #dfd6c8;
+            z-index: 1;
+        }
+
+        label {
+            display: grid;
+            gap: 4px;
+            color: #2f2a24;
+            font-size: 14px;
+        }
+    </style>
+    <div class="controls">
+        <label>
+            振幅 amplitude
+            <input id="amplitudeInput" type="range" min="20" max="180" value="80">
+        </label>
+        <label>
+            频率 frequency
+            <input id="frequencyInput" type="range" min="1" max="8" value="2">
+        </label>
+        <label>
+            相位 phase
+            <input id="phaseInput" type="range" min="0" max="6.28" step="0.01" value="0">
+        </label>
+        <label>
+            速度 speed
+            <input id="speedInput" type="range" min="0" max="6" step="0.1" value="1">
+        </label>
+    </div>
+
+    <canvas id="waveCanvas"></canvas>
+
+    <script>
+        const canvas = document.querySelector('#waveCanvas')
+        const ctx = canvas.getContext('2d')
+        const amplitudeInput = document.querySelector('#amplitudeInput')
+        const frequencyInput = document.querySelector('#frequencyInput')
+        const phaseInput = document.querySelector('#phaseInput')
+        const speedInput = document.querySelector('#speedInput')
+
+        const TAU = Math.PI * 2
+
+        let amplitude = Number(amplitudeInput.value)
+        let frequency = Number(frequencyInput.value)
+        let phase = Number(phaseInput.value)
+        let speed = Number(speedInput.value)
+        let elapsed = 0
+        let lastTime = 0
+
+        function render() {
+            const rect = canvas.getBoundingClientRect()
+            const dpr = Math.max(1, window.devicePixelRatio || 1)
+
+            canvas.width = Math.floor(rect.width * dpr)
+            canvas.height = Math.floor(rect.height * dpr)
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+
+            const baselineY = rect.height / 2
+            const circleX = rect.width - amplitude
+            const circleY = baselineY
+            const waveStartX = 0
+            const waveEndX = circleX - amplitude
+            const waveWidth = waveEndX - waveStartX
+            const angle = phase + elapsed * speed
+            const circlePointX = circleX + Math.cos(angle) * amplitude
+            const circlePointY = circleY - Math.sin(angle) * amplitude
+
+            ctx.clearRect(0, 0, rect.width, rect.height)
+
+            ctx.beginPath()
+            for (let x = waveStartX; x <= waveEndX; x++) {
+                const progress = (x - waveStartX) / waveWidth
+                const waveAngle =  progress * frequency * TAU + angle
+                const y = baselineY - amplitude * Math.sin(waveAngle)
+
+                if (x === waveStartX) {
+                    ctx.moveTo(x, y)
+                } else {
+                    ctx.lineTo(x, y)
+                }
+            }
+
+            ctx.strokeStyle = '#1d5f8f'
+            ctx.lineWidth = 2
+            ctx.stroke()
+
+             // 画右侧圆：cos 决定左右位置，sin 决定上下位置。
+            ctx.beginPath()
+            ctx.arc(circleX, circleY, amplitude, 0, TAU)
+            ctx.strokeStyle = '#7b4bb3'
+            ctx.lineWidth = 2
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.moveTo(circleX, circleY)
+            ctx.lineTo(circlePointX, circlePointY)
+            ctx.strokeStyle = '#7b4bb3'
+            ctx.lineWidth = 2
+            ctx.stroke()
+
+            ctx.beginPath()
+            ctx.arc(circlePointX, circlePointY, 6, 0, TAU)
+            ctx.fillStyle = '#7b4bb3'
+            ctx.fill()
+
+
+            
+        }
+
+        amplitudeInput.addEventListener('input', () => {
+            amplitude = Number(amplitudeInput.value)
+            render()
+        })
+
+        frequencyInput.addEventListener('input', () => {
+            frequency = Number(frequencyInput.value)
+            render()
+        })
+
+        phaseInput.addEventListener('input', () => {
+            phase = Number(phaseInput.value)
+            render()
+        })
+
+        speedInput.addEventListener('input', () => {
+            speed = Number(speedInput.value)
+            render()
+        })
+
+        function tick(timestamp){
+            if(lastTime === 0){
+                lastTime = timestamp
+            }
+             
+            const deltaSeconds = (timestamp - lastTime) / 1000
+            lastTime = timestamp
+            elapsed += deltaSeconds
+
+            render()
+
+            requestAnimationFrame(tick)
+        }
+
+        // render()
+        requestAnimationFrame(tick)
+    </script>
+</body>
+
+</html>
