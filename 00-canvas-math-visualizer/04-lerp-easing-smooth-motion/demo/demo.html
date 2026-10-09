@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第 1 步：立即跟随</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+    <main class="app-shell">
+        <section class="canvas-stage" aria-labelledby="demo-title">
+            <div class="stage-header">
+                <div>
+                    <p class="eyebrow">Stage 01 / Day 04</p>
+                    <h1 id="demo-title">立即跟随：目标点与跟随点</h1>
+                    <p class="stage-hint" id="motionHint">在画布中移动或点击指针，观察红色跟随点立即出现在目标点位置。聚焦画布后可用方向键移动目标。</p>
+                </div>
+                <div class="status-line">
+                    <span id="dprText">DPR 1</span>
+                    <span id="sizeText">0 x 0</span>
+                    <span id="fpsText">0 FPS</span>
+                </div>
+            </div>
+
+            <canvas id="motionCanvas" tabindex="0" aria-describedby="motionHint" aria-label="立即跟随的目标点和跟随点可视化">请使用支持 Canvas 的浏览器。</canvas>
+        </section>
+    </main>
+    <script src="./main.js"></script>
+</body>
+
+</html>
